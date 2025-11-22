@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/etRegUsername"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="Tên đăng nhập"
+        android:background="@drawable/edittext_bg"
+        android:padding="12dp"
+        android:layout_marginBottom="12dp"
+        android:inputType="text"/>
+
+    <EditText
+        android:id="@+id/etRegPassword"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="Mật khẩu"
+        android:background="@drawable/edittext_bg"
+        android:padding="12dp"
+        android:layout_marginBottom="12dp"
+        android:inputType="textPassword"/>
+
+    <EditText
+        android:id="@+id/etRegFullName"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="Họ và tên"
+        android:background="@drawable/edittext_bg"
+        android:padding="12dp"
+        android:layout_marginBottom="12dp"
+        android:inputType="textPersonName"/>
+
+    <EditText
+        android:id="@+id/etRegPhone"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="Số điện thoại"
+        android:background="@drawable/edittext_bg"
+        android:padding="12dp"
+        android:inputType="phone"/>
+</LinearLayout>
