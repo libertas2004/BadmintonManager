@@ -30,6 +30,7 @@ public class UserDashboardActivity extends AppCompatActivity {
     private View layoutBooking, layoutNotifications;
 
     private String username;
+    private String fullName;
     private String selectedDate;
     private DataManager dataManager;
 
@@ -39,6 +40,9 @@ public class UserDashboardActivity extends AppCompatActivity {
         setContentView(R.layout.activity_user_dashboard);
 
         username = getIntent().getStringExtra("username");
+        fullName = getIntent().getStringExtra("fullName");
+        if (fullName == null) fullName = username;
+
         dataManager = new DataManager(this);
 
         initViews();
@@ -60,7 +64,6 @@ public class UserDashboardActivity extends AppCompatActivity {
         layoutBooking = findViewById(R.id.layoutBooking);
         layoutNotifications = findViewById(R.id.layoutNotifications);
 
-        // Set current date
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
         selectedDate = sdf.format(new Date());
         tvDate.setText(selectedDate);
@@ -107,6 +110,7 @@ public class UserDashboardActivity extends AppCompatActivity {
 
     private void setupBookingView() {
         bookingView.setSelectedDate(selectedDate);
+        bookingView.setSelectable(true);
         loadBookedSlots();
 
         bookingView.setOnBookingChangeListener(selectedSlots -> {
@@ -128,7 +132,6 @@ public class UserDashboardActivity extends AppCompatActivity {
             return;
         }
 
-        // Each slot is 30 minutes = 30,000 VNĐ
         int totalSlots = selectedSlots.size();
         int hours = totalSlots / 2;
         int minutes = (totalSlots % 2) * 30;
@@ -146,8 +149,8 @@ public class UserDashboardActivity extends AppCompatActivity {
             return;
         }
 
-        // Group slots by court and find continuous time ranges
-        Map<String, List<TimeSlot>> slotsByCourt = new HashMap<>();
+        // Group slots by court
+        Map<String, java.util.ArrayList<TimeSlot>> slotsByCourt = new HashMap<>();
         for (TimeSlot slot : selectedSlots) {
             if (!slotsByCourt.containsKey(slot.getCourtName())) {
                 slotsByCourt.put(slot.getCourtName(), new java.util.ArrayList<>());
@@ -155,24 +158,37 @@ public class UserDashboardActivity extends AppCompatActivity {
             slotsByCourt.get(slot.getCourtName()).add(slot);
         }
 
-        // For simplicity, use the first court's time range
+        // Check if user selected multiple courts
+        if (slotsByCourt.size() > 1) {
+            Toast.makeText(this, "Vui lòng chỉ chọn một sân trong một lần đặt", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Get the selected court and time range
         String courtName = selectedSlots.get(0).getCourtName();
         String startTime = selectedSlots.get(0).getTime();
         String endTime = getEndTime(selectedSlots.get(selectedSlots.size() - 1).getTime());
         int totalPrice = selectedSlots.size() * 30000;
 
+        // Calculate total hours
+        int totalSlots = selectedSlots.size();
+        int hours = totalSlots / 2;
+        int minutes = (totalSlots % 2) * 30;
+        String totalHours = String.format("%dh%02d", hours, minutes);
+
         Intent intent = new Intent(this, PaymentActivity.class);
         intent.putExtra("court", courtName);
         intent.putExtra("customer", username);
+        intent.putExtra("fullName", fullName);
         intent.putExtra("date", selectedDate);
         intent.putExtra("timeStart", startTime);
         intent.putExtra("timeEnd", endTime);
+        intent.putExtra("totalHours", totalHours);
         intent.putExtra("price", totalPrice);
         startActivity(intent);
     }
 
     private String getEndTime(String lastSlotTime) {
-        // Add 30 minutes to last slot time
         String[] parts = lastSlotTime.split(":");
         int hour = Integer.parseInt(parts[0]);
         int minute = Integer.parseInt(parts[1]);
@@ -214,6 +230,8 @@ public class UserDashboardActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        bookingView.clearSelection();
         loadBookedSlots();
+        updateTotalPrice(bookingView.getSelectedSlots());
     }
 }

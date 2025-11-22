@@ -4,34 +4,35 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
 public class CourtBookingView extends View {
 
-    private static final int CELL_WIDTH = 120;  // Width của mỗi ô 30 phút
-    private static final int CELL_HEIGHT = 80;  // Height của mỗi ô sân
-    private static final int HEADER_HEIGHT = 60; // Height của header giờ
-    private static final int COURT_NAME_WIDTH = 100; // Width của cột tên sân
+    private static final int CELL_WIDTH = 120;
+    private static final int CELL_HEIGHT = 80;
+    private static final int HEADER_HEIGHT = 70;
+    private static final int COURT_NAME_WIDTH = 100;
 
-    private Paint paintWhite, paintRed, paintGray, paintSelected, paintText, paintBorder;
+    private Paint paintWhite, paintRed, paintGray, paintSelected, paintText, paintBorder, paintHeader;
     private List<TimeSlot> timeSlots = new ArrayList<>();
     private List<TimeSlot> selectedSlots = new ArrayList<>();
     private String selectedDate;
     private float scrollX = 0;
     private float scrollY = 0;
     private float lastTouchX, lastTouchY;
+    private boolean isSelectable = true; // For admin view-only mode
 
-    private int numCourts = 14; // Số lượng sân (1-14)
-    private String[] timeLabels; // 6:00, 6:30, 7:00, ..., 22:00
+    private int numCourts = 14;
+    private String[] timeLabels;
 
     private OnBookingChangeListener listener;
 
@@ -45,7 +46,6 @@ public class CourtBookingView extends View {
     }
 
     private void init() {
-        // Initialize paints
         paintWhite = new Paint();
         paintWhite.setColor(Color.WHITE);
         paintWhite.setStyle(Paint.Style.FILL);
@@ -59,24 +59,25 @@ public class CourtBookingView extends View {
         paintGray.setStyle(Paint.Style.FILL);
 
         paintSelected = new Paint();
-        paintSelected.setColor(Color.parseColor("#81C784")); // Light green
+        paintSelected.setColor(Color.parseColor("#81C784"));
         paintSelected.setStyle(Paint.Style.FILL);
 
         paintText = new Paint();
         paintText.setColor(Color.BLACK);
-        paintText.setTextSize(32);
+        paintText.setTextSize(28);
         paintText.setAntiAlias(true);
         paintText.setTextAlign(Paint.Align.CENTER);
+
+        paintHeader = new Paint();
+        paintHeader.setColor(Color.parseColor("#E8F5E9"));
+        paintHeader.setStyle(Paint.Style.FILL);
 
         paintBorder = new Paint();
         paintBorder.setColor(Color.parseColor("#E0E0E0"));
         paintBorder.setStyle(Paint.Style.STROKE);
         paintBorder.setStrokeWidth(2);
 
-        // Generate time labels: 6:00, 6:30, 7:00, ..., 22:00
         generateTimeLabels();
-
-        // Generate all time slots
         generateTimeSlots();
     }
 
@@ -107,18 +108,21 @@ public class CourtBookingView extends View {
         invalidate();
     }
 
+    public void setSelectable(boolean selectable) {
+        this.isSelectable = selectable;
+    }
+
     public void setBookedSlots(List<Booking> bookings) {
-        // Reset all slots
         for (TimeSlot slot : timeSlots) {
             slot.setBooked(false);
             slot.setBookedBy("");
         }
 
-        // Mark booked slots
         for (Booking booking : bookings) {
             if (booking.getDate().equals(selectedDate) && !booking.getStatus().equals("cancelled")) {
+                String userName = booking.getStatus().equals("confirmed") ? booking.getCustomerName() : "";
                 markSlotsAsBooked(booking.getCourtName(), booking.getTimeStart(),
-                        booking.getTimeEnd(), booking.getCustomerName());
+                        booking.getTimeEnd(), userName);
             }
         }
 
@@ -156,12 +160,10 @@ public class CourtBookingView extends View {
             boolean isSameDay = dateFormat.format(currentDate).equals(selectedDate);
 
             if (selectedDateTime.before(currentDate) && !isSameDay) {
-                // All slots in the past
                 for (TimeSlot slot : timeSlots) {
                     slot.setPast(true);
                 }
             } else if (isSameDay) {
-                // Mark slots before current time as past
                 SimpleDateFormat timeFormat = new SimpleDateFormat("H:mm", Locale.getDefault());
                 String currentTime = timeFormat.format(currentDate);
 
@@ -169,7 +171,6 @@ public class CourtBookingView extends View {
                     slot.setPast(slot.getTime().compareTo(currentTime) < 0);
                 }
             } else {
-                // Future date, no past slots
                 for (TimeSlot slot : timeSlots) {
                     slot.setPast(false);
                 }
@@ -183,13 +184,18 @@ public class CourtBookingView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
+        // Draw header background
+        canvas.drawRect(0, 0, COURT_NAME_WIDTH, HEADER_HEIGHT, paintHeader);
+
         // Draw court names (fixed column)
         for (int i = 0; i < numCourts; i++) {
-            float y = HEADER_HEIGHT + i * CELL_HEIGHT;
-            canvas.drawRect(0, y, COURT_NAME_WIDTH, y + CELL_HEIGHT, paintWhite);
+            float y = HEADER_HEIGHT + i * CELL_HEIGHT - scrollY;
+            if (y + CELL_HEIGHT < HEADER_HEIGHT || y > getHeight()) continue;
+
+            canvas.drawRect(0, y, COURT_NAME_WIDTH, y + CELL_HEIGHT, paintHeader);
             canvas.drawRect(0, y, COURT_NAME_WIDTH, y + CELL_HEIGHT, paintBorder);
             canvas.drawText("Sân " + (i + 1), COURT_NAME_WIDTH / 2f,
-                    y + CELL_HEIGHT / 2f + 12, paintText);
+                    y + CELL_HEIGHT / 2f + 10, paintText);
         }
 
         // Draw time headers (fixed row)
@@ -197,9 +203,9 @@ public class CourtBookingView extends View {
             float x = COURT_NAME_WIDTH + i * CELL_WIDTH - scrollX;
             if (x + CELL_WIDTH < COURT_NAME_WIDTH || x > getWidth()) continue;
 
-            canvas.drawRect(x, 0, x + CELL_WIDTH, HEADER_HEIGHT, paintWhite);
+            canvas.drawRect(x, 0, x + CELL_WIDTH, HEADER_HEIGHT, paintHeader);
             canvas.drawRect(x, 0, x + CELL_WIDTH, HEADER_HEIGHT, paintBorder);
-            canvas.drawText(timeLabels[i], x + CELL_WIDTH / 2f, HEADER_HEIGHT / 2f + 12, paintText);
+            canvas.drawText(timeLabels[i], x + CELL_WIDTH / 2f, HEADER_HEIGHT / 2f + 10, paintText);
         }
 
         // Draw time slots grid
@@ -208,7 +214,6 @@ public class CourtBookingView extends View {
                 float x = COURT_NAME_WIDTH + time * CELL_WIDTH - scrollX;
                 float y = HEADER_HEIGHT + court * CELL_HEIGHT - scrollY;
 
-                // Skip if out of view
                 if (x + CELL_WIDTH < COURT_NAME_WIDTH || x > getWidth() ||
                         y + CELL_HEIGHT < HEADER_HEIGHT || y > getHeight()) {
                     continue;
@@ -217,13 +222,12 @@ public class CourtBookingView extends View {
                 TimeSlot slot = getSlot(court, time);
                 if (slot == null) continue;
 
-                // Choose paint based on slot state
                 Paint paint;
                 if (selectedSlots.contains(slot)) {
                     paint = paintSelected;
                 } else if (slot.isPast()) {
                     paint = slot.isBooked() ? paintGray : paintGray;
-                    paint.setAlpha(100); // Make it dimmer
+                    paint.setAlpha(100);
                 } else if (slot.isBooked()) {
                     paint = paintRed;
                 } else {
@@ -233,7 +237,6 @@ public class CourtBookingView extends View {
                 canvas.drawRect(x, y, x + CELL_WIDTH, y + CELL_HEIGHT, paint);
                 canvas.drawRect(x, y, x + CELL_WIDTH, y + CELL_HEIGHT, paintBorder);
 
-                // Reset alpha
                 if (slot.isPast()) paint.setAlpha(255);
             }
         }
@@ -267,8 +270,7 @@ public class CourtBookingView extends View {
                 return true;
 
             case MotionEvent.ACTION_UP:
-                // Check if it's a tap (not a scroll)
-                if (Math.abs(event.getX() - lastTouchX) < 10 &&
+                if (isSelectable && Math.abs(event.getX() - lastTouchX) < 10 &&
                         Math.abs(event.getY() - lastTouchY) < 10) {
                     handleTap(event.getX(), event.getY());
                 }
@@ -278,7 +280,6 @@ public class CourtBookingView extends View {
     }
 
     private void handleTap(float x, float y) {
-        // Skip if tap is on header or court names
         if (x < COURT_NAME_WIDTH || y < HEADER_HEIGHT) return;
 
         int courtIndex = (int) ((y - HEADER_HEIGHT + scrollY) / CELL_HEIGHT);
@@ -290,7 +291,6 @@ public class CourtBookingView extends View {
         TimeSlot slot = getSlot(courtIndex, timeIndex);
         if (slot == null || slot.isBooked() || slot.isPast()) return;
 
-        // Toggle selection
         if (selectedSlots.contains(slot)) {
             selectedSlots.remove(slot);
         } else {
@@ -321,6 +321,16 @@ public class CourtBookingView extends View {
     }
 
     public List<TimeSlot> getSelectedSlots() {
-        return new ArrayList<>(selectedSlots);
+        // Sort by court and time
+        List<TimeSlot> sorted = new ArrayList<>(selectedSlots);
+        Collections.sort(sorted, new Comparator<TimeSlot>() {
+            @Override
+            public int compare(TimeSlot s1, TimeSlot s2) {
+                int courtCompare = s1.getCourtName().compareTo(s2.getCourtName());
+                if (courtCompare != 0) return courtCompare;
+                return s1.getTime().compareTo(s2.getTime());
+            }
+        });
+        return sorted;
     }
 }

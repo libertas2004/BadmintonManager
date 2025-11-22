@@ -18,13 +18,33 @@ public class TimeSlot {
     }
 
     public String getCourtName() { return courtName; }
+    public void setCourtName(String courtName) { this.courtName = courtName; }
+
     public String getTime() { return time; }
+    public void setTime(String time) { this.time = time; }
+
     public boolean isBooked() { return isBooked; }
     public void setBooked(boolean booked) { isBooked = booked; }
+
     public boolean isPast() { return isPast; }
     public void setPast(boolean past) { isPast = past; }
+
     public boolean isSelected() { return isSelected; }
     public void setSelected(boolean selected) { isSelected = selected; }
+
     public String getBookedBy() { return bookedBy; }
     public void setBookedBy(String bookedBy) { this.bookedBy = bookedBy; }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        TimeSlot timeSlot = (TimeSlot) obj;
+        return courtName.equals(timeSlot.courtName) && time.equals(timeSlot.time);
+    }
+
+    @Override
+    public int hashCode() {
+        return (courtName + time).hashCode();
+    }
 }

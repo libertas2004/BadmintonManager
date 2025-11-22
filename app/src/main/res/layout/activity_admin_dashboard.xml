@@ -100,7 +100,18 @@
                 android:textStyle="bold"
                 android:textColor="#333333"
                 android:background="@drawable/edittext_bg"
-                android:drawableEnd="@drawable/ic_calendar"/>
+                android:drawableEnd="@drawable/ic_calendar"
+                android:paddingEnd="12dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Chế độ xem"
+                android:textSize="12sp"
+                android:textColor="#FF5722"
+                android:textStyle="bold"
+                android:layout_marginStart="16dp"
+                android:padding="8dp"/>
         </LinearLayout>
 
         <View
@@ -108,11 +119,11 @@
             android:layout_height="1dp"
             android:background="#E0E0E0"/>
 
-        <!-- Time Slots Grid -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvTimeSlots"
+        <!-- Court Booking View (Read-only) -->
+        <com.libertas.badmintonmanager.CourtBookingView
+            android:id="@+id/bookingView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="8dp"/>
+            android:background="#FFFFFF"/>
     </LinearLayout>
 </LinearLayout>
