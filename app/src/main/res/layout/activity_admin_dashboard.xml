@@ -72,6 +72,23 @@
             android:padding="8dp"/>
     </LinearLayout>
 
+    <!-- Notifications Layout -->
+    <LinearLayout
+        android:id="@+id/layoutNotifications"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <ListView
+            android:id="@+id/lvNotifications"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="8dp"
+            android:divider="#E0E0E0"
+            android:dividerHeight="1dp"/>
+    </LinearLayout>
+
     <!-- Court Management Layout -->
     <LinearLayout
         android:id="@+id/layoutCourtManagement"

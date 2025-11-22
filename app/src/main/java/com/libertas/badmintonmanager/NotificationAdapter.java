@@ -6,18 +6,17 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.Button;
 import android.widget.TextView;
 import java.util.List;
 
 public class NotificationAdapter extends BaseAdapter {
 
-    private final Context context;
-    private final List<Notification> notifications;
-    private final OnNotificationClickListener listener;
+    private Context context;
+    private List<Notification> notifications;
+    private OnNotificationClickListener listener;
 
     public interface OnNotificationClickListener {
-        void onNotificationRead(Notification notification);
+        void onNotificationClick(Notification notification);
     }
 
     public NotificationAdapter(Context context, List<Notification> notifications,
@@ -54,7 +53,6 @@ public class NotificationAdapter extends BaseAdapter {
         TextView tvTitle = convertView.findViewById(R.id.tvNotificationTitle);
         TextView tvMessage = convertView.findViewById(R.id.tvNotificationMessage);
         TextView tvTime = convertView.findViewById(R.id.tvNotificationTime);
-        Button btnClose = convertView.findViewById(R.id.btnClose);
         View viewUnread = convertView.findViewById(R.id.viewUnreadIndicator);
 
         tvTitle.setText(notification.getTitle());
@@ -70,10 +68,9 @@ public class NotificationAdapter extends BaseAdapter {
             convertView.setBackgroundColor(Color.WHITE);
         }
 
-        btnClose.setOnClickListener(v -> {
-            if (!notification.isRead()) {
-                listener.onNotificationRead(notification);
-            }
+        // Click on entire item to view detail
+        convertView.setOnClickListener(v -> {
+            listener.onNotificationClick(notification);
         });
 
         return convertView;

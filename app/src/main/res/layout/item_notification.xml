@@ -3,7 +3,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:padding="16dp"
-    android:background="#FFFFFF">
+    android:background="#FFFFFF"
+    android:clickable="true"
+    android:focusable="true">
 
     <View
         android:id="@+id/viewUnreadIndicator"
@@ -35,33 +37,17 @@
             android:text="Nội dung thông báo"
             android:textSize="14sp"
             android:textColor="#666666"
-            android:layout_marginTop="4dp"/>
+            android:layout_marginTop="4dp"
+            android:maxLines="2"
+            android:ellipsize="end"/>
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/tvNotificationTime"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="8dp">
-
-            <TextView
-                android:id="@+id/tvNotificationTime"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="22/11/2025 15:30"
-                android:textSize="12sp"
-                android:textColor="#999999"/>
-
-            <Button
-                android:id="@+id/btnClose"
-                android:layout_width="wrap_content"
-                android:layout_height="32dp"
-                android:text="Đóng"
-                android:textSize="12sp"
-                android:background="@drawable/button_outline"
-                android:textColor="@color/colorPrimary"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"/>
-        </LinearLayout>
+            android:text="22/11/2025 15:30"
+            android:textSize="12sp"
+            android:textColor="#999999"
+            android:layout_marginTop="8dp"/>
     </LinearLayout>
 </RelativeLayout>

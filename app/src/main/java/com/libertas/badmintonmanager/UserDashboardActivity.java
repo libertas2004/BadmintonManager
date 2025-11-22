@@ -9,7 +9,9 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.tabs.TabLayout;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -33,6 +35,7 @@ public class UserDashboardActivity extends AppCompatActivity {
     private String fullName;
     private String selectedDate;
     private DataManager dataManager;
+    private BadgeDrawable notificationBadge;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,8 +73,13 @@ public class UserDashboardActivity extends AppCompatActivity {
     }
 
     private void setupTabLayout() {
-        tabLayout.addTab(tabLayout.newTab().setText("Đặt sân"));
-        tabLayout.addTab(tabLayout.newTab().setText("Thông báo"));
+        TabLayout.Tab tab1 = tabLayout.newTab().setText("Đặt sân");
+        TabLayout.Tab tab2 = tabLayout.newTab().setText("Thông báo");
+
+        tabLayout.addTab(tab1);
+        tabLayout.addTab(tab2);
+
+        updateNotificationBadge(tab2);
 
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
@@ -92,6 +100,29 @@ public class UserDashboardActivity extends AppCompatActivity {
             @Override
             public void onTabReselected(TabLayout.Tab tab) {}
         });
+    }
+
+    private void updateNotificationBadge(TabLayout.Tab tab) {
+        int unreadCount = getUnreadNotificationCount();
+
+        if (notificationBadge == null) {
+            notificationBadge = tab.getOrCreateBadge();
+        }
+
+        if (unreadCount > 0) {
+            notificationBadge.setVisible(true);
+            if (unreadCount > 99) {
+                notificationBadge.setNumber(99);
+            } else {
+                notificationBadge.setNumber(unreadCount);
+            }
+        } else {
+            notificationBadge.setVisible(false);
+        }
+    }
+
+    private int getUnreadNotificationCount() {
+        return dataManager.getUnreadNotificationCount(username);
     }
 
     private void setupDateSelector() {
@@ -149,7 +180,6 @@ public class UserDashboardActivity extends AppCompatActivity {
             return;
         }
 
-        // Group slots by court
         Map<String, java.util.ArrayList<TimeSlot>> slotsByCourt = new HashMap<>();
         for (TimeSlot slot : selectedSlots) {
             if (!slotsByCourt.containsKey(slot.getCourtName())) {
@@ -158,19 +188,16 @@ public class UserDashboardActivity extends AppCompatActivity {
             slotsByCourt.get(slot.getCourtName()).add(slot);
         }
 
-        // Check if user selected multiple courts
         if (slotsByCourt.size() > 1) {
             Toast.makeText(this, "Vui lòng chỉ chọn một sân trong một lần đặt", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Get the selected court and time range
         String courtName = selectedSlots.get(0).getCourtName();
         String startTime = selectedSlots.get(0).getTime();
         String endTime = getEndTime(selectedSlots.get(selectedSlots.size() - 1).getTime());
         int totalPrice = selectedSlots.size() * 30000;
 
-        // Calculate total hours
         int totalSlots = selectedSlots.size();
         int hours = totalSlots / 2;
         int minutes = (totalSlots % 2) * 30;
@@ -210,12 +237,38 @@ public class UserDashboardActivity extends AppCompatActivity {
             return;
         }
 
-        NotificationAdapter adapter = new NotificationAdapter(this, notifications, notification -> {
-            dataManager.markNotificationAsRead(username, notification.getId());
-            loadNotifications();
-        });
+        NotificationAdapter adapter = new NotificationAdapter(this, notifications,
+                new NotificationAdapter.OnNotificationClickListener() {
+                    @Override
+                    public void onNotificationClick(Notification notification) {
+                        showNotificationDetail(notification);
+                    }
+                });
 
         lvNotifications.setAdapter(adapter);
+    }
+
+    private void showNotificationDetail(Notification notification) {
+        // Mark as read
+        if (!notification.isRead()) {
+            dataManager.markNotificationAsRead(username, notification.getId());
+
+            // Update badge
+            TabLayout.Tab tab = tabLayout.getTabAt(1);
+            if (tab != null) {
+                updateNotificationBadge(tab);
+            }
+
+            // Reload to update UI
+            loadNotifications();
+        }
+
+        // Show detail dialog
+        new AlertDialog.Builder(this)
+                .setTitle(notification.getTitle())
+                .setMessage(notification.getMessage() + "\n\n" + notification.getTimestamp())
+                .setPositiveButton("Đóng", null)
+                .show();
     }
 
     private void setupLogout() {
@@ -233,5 +286,10 @@ public class UserDashboardActivity extends AppCompatActivity {
         bookingView.clearSelection();
         loadBookedSlots();
         updateTotalPrice(bookingView.getSelectedSlots());
+
+        TabLayout.Tab tab = tabLayout.getTabAt(1);
+        if (tab != null) {
+            updateNotificationBadge(tab);
+        }
     }
 }
