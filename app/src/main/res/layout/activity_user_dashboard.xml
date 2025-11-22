@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/gradient_background"
+            android:padding="24dp">
+
+            <TextView
+                android:id="@+id/tvWelcomeUser"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Chào mừng"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ĐẶT SÂN CẦU LÔNG"
+                android:textSize="16sp"
+                android:textColor="#E0E0E0"
+                android:layout_marginTop="4dp"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Chọn sân"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#333333"
+                android:layout_marginBottom="8dp"/>
+
+            <Spinner
+                android:id="@+id/spCourt"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="@drawable/edittext_bg"
+                android:padding="12dp"
+                android:layout_marginBottom="24dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Chọn ngày"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#333333"
+                android:layout_marginBottom="8dp"/>
+
+            <Button
+                android:id="@+id/btnSelectDate"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="Chọn ngày"
+                android:background="@drawable/button_outline"
+                android:textColor="#1976D2"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/tvDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Ngày: Chưa chọn"
+                android:textSize="14sp"
+                android:textColor="#666666"
+                android:layout_marginBottom="24dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Chọn giờ"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#333333"
+                android:layout_marginBottom="8dp"/>
+
+            <Button
+                android:id="@+id/btnSelectTimeStart"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="Giờ bắt đầu"
+                android:background="@drawable/button_outline"
+                android:textColor="#1976D2"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/tvTimeStart"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Giờ bắt đầu: Chưa chọn"
+                android:textSize="14sp"
+                android:textColor="#666666"
+                android:layout_marginBottom="16dp"/>
+
+            <Button
+                android:id="@+id/btnSelectTimeEnd"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="Giờ kết thúc"
+                android:background="@drawable/button_outline"
+                android:textColor="#1976D2"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/tvTimeEnd"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Giờ kết thúc: Chưa chọn"
+                android:textSize="14sp"
+                android:textColor="#666666"
+                android:layout_marginBottom="24dp"/>
+
+            <TextView
+                android:id="@+id/tvPrice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Giá: 0 VNĐ"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#4CAF50"
+                android:layout_marginBottom="24dp"/>
+
+            <Button
+                android:id="@+id/btnBooking"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="ĐẶT SÂN VÀ THANH TOÁN"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:background="@drawable/button_bg"
+                android:textColor="#FFFFFF"/>
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
