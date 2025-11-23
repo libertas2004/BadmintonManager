@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
@@ -16,6 +15,8 @@ import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.tabs.TabLayout;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -26,15 +27,14 @@ public class AdminDashboardActivity extends AppCompatActivity {
     private ImageView ivLogout;
     private TabLayout tabLayout;
     private RecyclerView rvBookings;
-    private ListView lvNotifications;
     private CourtBookingView bookingView;
-    private View layoutBookingList, layoutNotifications, layoutCourtManagement;
+    private View layoutBookingList, layoutCourtManagement;
 
     private String username;
     private String selectedDate;
     private DataManager dataManager;
     private BookingListAdapter bookingAdapter;
-    private BadgeDrawable notificationBadge;
+    private BadgeDrawable bookingBadge;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,40 +66,29 @@ public class AdminDashboardActivity extends AppCompatActivity {
         ivLogout = findViewById(R.id.ivLogout);
         tabLayout = findViewById(R.id.tabLayout);
         rvBookings = findViewById(R.id.rvBookings);
-        lvNotifications = findViewById(R.id.lvNotifications);
         bookingView = findViewById(R.id.bookingView);
         layoutBookingList = findViewById(R.id.layoutBookingList);
-        layoutNotifications = findViewById(R.id.layoutNotifications);
         layoutCourtManagement = findViewById(R.id.layoutCourtManagement);
     }
 
     private void setupTabLayout() {
         TabLayout.Tab tab1 = tabLayout.newTab().setText("Danh sách đặt sân");
-        TabLayout.Tab tab2 = tabLayout.newTab().setText("Thông báo");
-        TabLayout.Tab tab3 = tabLayout.newTab().setText("Quản lý sân");
+        TabLayout.Tab tab2 = tabLayout.newTab().setText("Quản lý sân");
 
         tabLayout.addTab(tab1);
         tabLayout.addTab(tab2);
-        tabLayout.addTab(tab3);
 
-        updateNotificationBadge(tab2);
+        updateBookingBadge(tab1);
 
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
                 if (tab.getPosition() == 0) {
                     layoutBookingList.setVisibility(View.VISIBLE);
-                    layoutNotifications.setVisibility(View.GONE);
                     layoutCourtManagement.setVisibility(View.GONE);
                     loadBookings();
-                } else if (tab.getPosition() == 1) {
-                    layoutBookingList.setVisibility(View.GONE);
-                    layoutNotifications.setVisibility(View.VISIBLE);
-                    layoutCourtManagement.setVisibility(View.GONE);
-                    loadNotifications();
                 } else {
                     layoutBookingList.setVisibility(View.GONE);
-                    layoutNotifications.setVisibility(View.GONE);
                     layoutCourtManagement.setVisibility(View.VISIBLE);
                     loadCourtManagement();
                 }
@@ -113,73 +102,42 @@ public class AdminDashboardActivity extends AppCompatActivity {
         });
     }
 
-    private void updateNotificationBadge(TabLayout.Tab tab) {
-        int unreadCount = getUnreadNotificationCount();
+    private void updateBookingBadge(TabLayout.Tab tab) {
+        int pendingCount = getPendingBookingCount();
 
-        if (notificationBadge == null) {
-            notificationBadge = tab.getOrCreateBadge();
+        if (bookingBadge == null) {
+            bookingBadge = tab.getOrCreateBadge();
         }
 
-        if (unreadCount > 0) {
-            notificationBadge.setVisible(true);
-            if (unreadCount > 99) {
-                notificationBadge.setNumber(99);
-            } else {
-                notificationBadge.setNumber(unreadCount);
-            }
+        if (pendingCount > 0) {
+            bookingBadge.setVisible(true);
+            bookingBadge.setNumber(pendingCount);
         } else {
-            notificationBadge.setVisible(false);
+            bookingBadge.setVisible(false);
         }
     }
 
-    private int getUnreadNotificationCount() {
-        return dataManager.getUnreadNotificationCount(username);
-    }
-
-    private void loadNotifications() {
-        List<Notification> notifications = dataManager.getNotifications(username);
-
-        if (notifications.isEmpty()) {
-            Toast.makeText(this, "Chưa có thông báo nào", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        NotificationAdapter adapter = new NotificationAdapter(this, notifications,
-                new NotificationAdapter.OnNotificationClickListener() {
-                    @Override
-                    public void onNotificationClick(Notification notification) {
-                        showNotificationDetail(notification);
-                    }
-                });
-
-        lvNotifications.setAdapter(adapter);
-    }
-
-    private void showNotificationDetail(Notification notification) {
-        // Mark as read
-        if (!notification.isRead()) {
-            dataManager.markNotificationAsRead(username, notification.getId());
-
-            // Update badge
-            TabLayout.Tab tab = tabLayout.getTabAt(1);
-            if (tab != null) {
-                updateNotificationBadge(tab);
+    private int getPendingBookingCount() {
+        List<Booking> bookings = dataManager.getBookings();
+        int count = 0;
+        for (Booking booking : bookings) {
+            if (booking.getStatus().equals("pending")) {
+                count++;
             }
-
-            // Reload to update UI
-            loadNotifications();
         }
-
-        // Show detail dialog
-        new AlertDialog.Builder(this)
-                .setTitle(notification.getTitle())
-                .setMessage(notification.getMessage() + "\n\n" + notification.getTimestamp())
-                .setPositiveButton("Đóng", null)
-                .show();
+        return count;
     }
 
     private void loadBookings() {
         List<Booking> bookings = dataManager.getBookings();
+
+        // Sort by timestamp (newest first)
+        Collections.sort(bookings, new Comparator<Booking>() {
+            @Override
+            public int compare(Booking b1, Booking b2) {
+                return Long.compare(b2.getTimestamp(), b1.getTimestamp());
+            }
+        });
 
         bookingAdapter = new BookingListAdapter(bookings, new BookingListAdapter.OnBookingClickListener() {
             @Override
@@ -207,56 +165,89 @@ public class AdminDashboardActivity extends AppCompatActivity {
         builder.setTitle("Chi tiết đặt sân")
                 .setMessage(details);
 
-        if (!booking.getStatus().equals("paid") &&
-                !booking.getStatus().equals("confirmed") &&
-                !booking.getStatus().equals("cancelled")) {
+        // Show "Đã thanh toán" button if pending
+        if (booking.getStatus().equals("pending")) {
             builder.setNeutralButton("Đã thanh toán", (dialog, which) -> {
-                booking.setStatus("confirmed");
-                dataManager.updateBooking(booking);
+                // Confirm dialog
+                new AlertDialog.Builder(this)
+                        .setTitle("Xác nhận")
+                        .setMessage("Xác nhận đơn đặt sân này đã thanh toán?")
+                        .setPositiveButton("Có", (d, w) -> confirmPayment(booking))
+                        .setNegativeButton("Không", null)
+                        .show();
+            });
 
-                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
-                String timestamp = sdf.format(new Date());
-
-                Notification notification = new Notification(
-                        "Xác nhận thanh toán",
-                        "Đơn đặt " + booking.getCourtName() + " ngày " + booking.getDate() +
-                                " lúc " + booking.getTime() + " đã được xác nhận thanh toán.",
-                        timestamp,
-                        booking.getId()
-                );
-                dataManager.addNotification(booking.getCustomerName(), notification);
-
-                loadBookings();
-                updateRevenue();
-
-                Toast.makeText(this, "Đã xác nhận thanh toán", Toast.LENGTH_SHORT).show();
+            builder.setNegativeButton("Không nhận", (dialog, which) -> {
+                // Confirm dialog
+                new AlertDialog.Builder(this)
+                        .setTitle("Xác nhận")
+                        .setMessage("Bạn chắc chắn muốn hủy đơn đặt sân này?")
+                        .setPositiveButton("Có", (d, w) -> rejectBooking(booking))
+                        .setNegativeButton("Không", null)
+                        .show();
             });
         }
 
-        if (!booking.getStatus().equals("cancelled")) {
-            builder.setNegativeButton("Không nhận", (dialog, which) -> {
-                booking.setStatus("cancelled");
-                dataManager.updateBooking(booking);
-
-                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
-                String timestamp = sdf.format(new Date());
-
-                Notification notification = new Notification(
-                        "Đặt sân bị hủy",
-                        "Đơn đặt " + booking.getCourtName() + " ngày " + booking.getDate() +
-                                " lúc " + booking.getTime() + " đã bị hủy bởi admin.",
-                        timestamp,
-                        booking.getId()
-                );
-                dataManager.addNotification(booking.getCustomerName(), notification);
-
-                loadBookings();
-                Toast.makeText(this, "Đã hủy đơn đặt sân", Toast.LENGTH_SHORT).show();
-            });
+        // If confirmed, don't show "Không nhận" button
+        if (booking.getStatus().equals("confirmed")) {
+            // Already confirmed, no action buttons needed
         }
 
         builder.setPositiveButton("Đóng", null);
         builder.show();
+    }
+
+    private void confirmPayment(Booking booking) {
+        booking.setStatus("confirmed");
+        dataManager.updateBooking(booking);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+        String timestamp = sdf.format(new Date());
+
+        Notification notification = new Notification(
+                "Xác nhận thanh toán",
+                "Đơn đặt " + booking.getCourtName() + " ngày " + booking.getDate() +
+                        " lúc " + booking.getTime() + " đã được xác nhận thanh toán.",
+                timestamp,
+                booking.getId()
+        );
+        dataManager.addNotification(booking.getCustomerName(), notification);
+
+        loadBookings();
+        updateRevenue();
+
+        TabLayout.Tab tab = tabLayout.getTabAt(0);
+        if (tab != null) {
+            updateBookingBadge(tab);
+        }
+
+        Toast.makeText(this, "Đã xác nhận thanh toán", Toast.LENGTH_SHORT).show();
+    }
+
+    private void rejectBooking(Booking booking) {
+        booking.setStatus("cancelled");
+        dataManager.updateBooking(booking);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+        String timestamp = sdf.format(new Date());
+
+        Notification notification = new Notification(
+                "Đặt sân bị hủy",
+                "Đơn đặt " + booking.getCourtName() + " ngày " + booking.getDate() +
+                        " lúc " + booking.getTime() + " đã bị hủy bởi admin.",
+                timestamp,
+                booking.getId()
+        );
+        dataManager.addNotification(booking.getCustomerName(), notification);
+
+        loadBookings();
+
+        TabLayout.Tab tab = tabLayout.getTabAt(0);
+        if (tab != null) {
+            updateBookingBadge(tab);
+        }
+
+        Toast.makeText(this, "Đã hủy đơn đặt sân", Toast.LENGTH_SHORT).show();
     }
 
     private void updateRevenue() {
@@ -305,9 +296,9 @@ public class AdminDashboardActivity extends AppCompatActivity {
         loadBookings();
         updateRevenue();
 
-        TabLayout.Tab tab = tabLayout.getTabAt(1);
+        TabLayout.Tab tab = tabLayout.getTabAt(0);
         if (tab != null) {
-            updateNotificationBadge(tab);
+            updateBookingBadge(tab);
         }
     }
 }

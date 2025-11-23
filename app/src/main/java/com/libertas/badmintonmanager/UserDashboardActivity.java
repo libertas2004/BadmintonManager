@@ -15,6 +15,8 @@ import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.tabs.TabLayout;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -111,11 +113,7 @@ public class UserDashboardActivity extends AppCompatActivity {
 
         if (unreadCount > 0) {
             notificationBadge.setVisible(true);
-            if (unreadCount > 99) {
-                notificationBadge.setNumber(99);
-            } else {
-                notificationBadge.setNumber(unreadCount);
-            }
+            notificationBadge.setNumber(unreadCount);
         } else {
             notificationBadge.setVisible(false);
         }
@@ -232,6 +230,14 @@ public class UserDashboardActivity extends AppCompatActivity {
     private void loadNotifications() {
         List<Notification> notifications = dataManager.getNotifications(username);
 
+        // Sort by timestamp (newest first)
+        Collections.sort(notifications, new Comparator<Notification>() {
+            @Override
+            public int compare(Notification n1, Notification n2) {
+                return n2.getTimestamp().compareTo(n1.getTimestamp());
+            }
+        });
+
         if (notifications.isEmpty()) {
             Toast.makeText(this, "Chưa có thông báo nào", Toast.LENGTH_SHORT).show();
             return;
@@ -249,21 +255,17 @@ public class UserDashboardActivity extends AppCompatActivity {
     }
 
     private void showNotificationDetail(Notification notification) {
-        // Mark as read
         if (!notification.isRead()) {
             dataManager.markNotificationAsRead(username, notification.getId());
 
-            // Update badge
             TabLayout.Tab tab = tabLayout.getTabAt(1);
             if (tab != null) {
                 updateNotificationBadge(tab);
             }
 
-            // Reload to update UI
             loadNotifications();
         }
 
-        // Show detail dialog
         new AlertDialog.Builder(this)
                 .setTitle(notification.getTitle())
                 .setMessage(notification.getMessage() + "\n\n" + notification.getTimestamp())

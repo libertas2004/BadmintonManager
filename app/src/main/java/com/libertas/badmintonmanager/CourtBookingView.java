@@ -7,6 +7,7 @@ import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,7 +30,8 @@ public class CourtBookingView extends View {
     private float scrollX = 0;
     private float scrollY = 0;
     private float lastTouchX, lastTouchY;
-    private boolean isSelectable = true; // For admin view-only mode
+    private boolean isSelectable = true;
+    private boolean isDragging = false;
 
     private int numCourts = 14;
     private String[] timeLabels;
@@ -150,44 +152,68 @@ public class CourtBookingView extends View {
         if (selectedDate == null) return;
 
         try {
-            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+            Date selectedDateTime = sdf.parse(selectedDate);
             Date currentDate = new Date();
-            Date selectedDateTime = sdf.parse(selectedDate + " 00:00");
 
-            if (selectedDateTime == null) return;
+            SimpleDateFormat dateOnlyFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+            String selectedDateStr = dateOnlyFormat.format(selectedDateTime);
+            String currentDateStr = dateOnlyFormat.format(currentDate);
 
-            SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-            boolean isSameDay = dateFormat.format(currentDate).equals(selectedDate);
-
-            if (selectedDateTime.before(currentDate) && !isSameDay) {
-                for (TimeSlot slot : timeSlots) {
-                    slot.setPast(true);
-                }
-            } else if (isSameDay) {
-                SimpleDateFormat timeFormat = new SimpleDateFormat("H:mm", Locale.getDefault());
+            if (selectedDateStr.equals(currentDateStr)) {
+                // Same day - mark past time slots
+                SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
                 String currentTime = timeFormat.format(currentDate);
 
                 for (TimeSlot slot : timeSlots) {
-                    slot.setPast(slot.getTime().compareTo(currentTime) < 0);
+                    // ✅ SỬA: So sánh chính xác hơn
+                    String slotTime = formatTimeToHHmm(slot.getTime());
+                    slot.setPast(slotTime.compareTo(currentTime) <= 0);
+                }
+            } else if (selectedDateTime.before(currentDate)) {
+                // Past date - all slots are past
+                for (TimeSlot slot : timeSlots) {
+                    slot.setPast(true);
                 }
             } else {
+                // Future date - no past slots
                 for (TimeSlot slot : timeSlots) {
                     slot.setPast(false);
                 }
             }
-        } catch (Exception e) {
+        } catch (ParseException e) {
             e.printStackTrace();
         }
+    }
+
+    // ✅ THÊM method này
+    private String formatTimeToHHmm(String time) {
+        // Convert "6:00" -> "06:00", "6:30" -> "06:30"
+        String[] parts = time.split(":");
+        int hour = Integer.parseInt(parts[0]);
+        int minute = Integer.parseInt(parts[1]);
+        return String.format("%02d:%02d", hour, minute);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        // Draw header background
+        // Draw top-left corner
         canvas.drawRect(0, 0, COURT_NAME_WIDTH, HEADER_HEIGHT, paintHeader);
+        canvas.drawRect(0, 0, COURT_NAME_WIDTH, HEADER_HEIGHT, paintBorder);
 
-        // Draw court names (fixed column)
+        // Draw time headers (fixed row, scrollable horizontally)
+        for (int i = 0; i < timeLabels.length; i++) {
+            float x = COURT_NAME_WIDTH + i * CELL_WIDTH - scrollX;
+            if (x + CELL_WIDTH < COURT_NAME_WIDTH || x > getWidth()) continue;
+
+            canvas.drawRect(x, 0, x + CELL_WIDTH, HEADER_HEIGHT, paintHeader);
+            canvas.drawRect(x, 0, x + CELL_WIDTH, HEADER_HEIGHT, paintBorder);
+            canvas.drawText(timeLabels[i], x + CELL_WIDTH / 2f, HEADER_HEIGHT / 2f + 10, paintText);
+        }
+
+        // Draw court names (fixed column, scrollable vertically)
         for (int i = 0; i < numCourts; i++) {
             float y = HEADER_HEIGHT + i * CELL_HEIGHT - scrollY;
             if (y + CELL_HEIGHT < HEADER_HEIGHT || y > getHeight()) continue;
@@ -198,17 +224,7 @@ public class CourtBookingView extends View {
                     y + CELL_HEIGHT / 2f + 10, paintText);
         }
 
-        // Draw time headers (fixed row)
-        for (int i = 0; i < timeLabels.length; i++) {
-            float x = COURT_NAME_WIDTH + i * CELL_WIDTH - scrollX;
-            if (x + CELL_WIDTH < COURT_NAME_WIDTH || x > getWidth()) continue;
-
-            canvas.drawRect(x, 0, x + CELL_WIDTH, HEADER_HEIGHT, paintHeader);
-            canvas.drawRect(x, 0, x + CELL_WIDTH, HEADER_HEIGHT, paintBorder);
-            canvas.drawText(timeLabels[i], x + CELL_WIDTH / 2f, HEADER_HEIGHT / 2f + 10, paintText);
-        }
-
-        // Draw time slots grid
+        // Draw time slots grid (scrollable both directions)
         for (int court = 0; court < numCourts; court++) {
             for (int time = 0; time < timeLabels.length; time++) {
                 float x = COURT_NAME_WIDTH + time * CELL_WIDTH - scrollX;
@@ -253,16 +269,29 @@ public class CourtBookingView extends View {
             case MotionEvent.ACTION_DOWN:
                 lastTouchX = event.getX();
                 lastTouchY = event.getY();
+                isDragging = false;
                 return true;
 
             case MotionEvent.ACTION_MOVE:
                 float dx = event.getX() - lastTouchX;
                 float dy = event.getY() - lastTouchY;
 
-                scrollX = Math.max(0, Math.min(scrollX - dx,
-                        timeLabels.length * CELL_WIDTH - getWidth() + COURT_NAME_WIDTH));
-                scrollY = Math.max(0, Math.min(scrollY - dy,
-                        numCourts * CELL_HEIGHT - getHeight() + HEADER_HEIGHT));
+                // If moved more than threshold, consider it dragging
+                if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                    isDragging = true;
+                }
+
+                // Only scroll horizontally if not in court name column
+                if (lastTouchX > COURT_NAME_WIDTH) {
+                    float maxScrollX = timeLabels.length * CELL_WIDTH - (getWidth() - COURT_NAME_WIDTH);
+                    scrollX = Math.max(0, Math.min(scrollX - dx, maxScrollX));
+                }
+
+                // Only scroll vertically if not in time header row
+                if (lastTouchY > HEADER_HEIGHT) {
+                    float maxScrollY = numCourts * CELL_HEIGHT - (getHeight() - HEADER_HEIGHT);
+                    scrollY = Math.max(0, Math.min(scrollY - dy, maxScrollY));
+                }
 
                 lastTouchX = event.getX();
                 lastTouchY = event.getY();
@@ -270,8 +299,7 @@ public class CourtBookingView extends View {
                 return true;
 
             case MotionEvent.ACTION_UP:
-                if (isSelectable && Math.abs(event.getX() - lastTouchX) < 10 &&
-                        Math.abs(event.getY() - lastTouchY) < 10) {
+                if (isSelectable && !isDragging) {
                     handleTap(event.getX(), event.getY());
                 }
                 return true;
@@ -321,7 +349,6 @@ public class CourtBookingView extends View {
     }
 
     public List<TimeSlot> getSelectedSlots() {
-        // Sort by court and time
         List<TimeSlot> sorted = new ArrayList<>(selectedSlots);
         Collections.sort(sorted, new Comparator<TimeSlot>() {
             @Override
