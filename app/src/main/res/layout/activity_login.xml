@@ -23,22 +23,17 @@
         android:textColor="#FFFFFF"
         android:layout_marginBottom="48dp"/>
 
-    <com.google.android.material.textfield.TextInputLayout
+    <EditText
+        android:id="@+id/etUsername"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-
-        <EditText
-            android:id="@+id/etUsername"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:hint="Tên đăng nhập"
-            android:background="@drawable/edittext_bg"
-            android:padding="16dp"
-            android:inputType="text"
-            android:textColor="#333333"/>
-    </com.google.android.material.textfield.TextInputLayout>
+        android:layout_height="56dp"
+        android:hint="Tên đăng nhập"
+        android:background="@drawable/edittext_bg"
+        android:padding="16dp"
+        android:inputType="text"
+        android:textColor="#333333"
+        android:textColorHint="#999999"
+        android:layout_marginBottom="16dp"/>
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
@@ -54,13 +49,14 @@
             <EditText
                 android:id="@+id/etPassword"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="56dp"
                 android:hint="Mật khẩu"
+                android:background="@drawable/edittext_bg"
                 android:padding="16dp"
                 android:paddingEnd="48dp"
-                android:background="@android:color/transparent"
                 android:inputType="textPassword"
-                android:textColor="#333333"/>
+                android:textColor="#333333"
+                android:textColorHint="#999999"/>
 
             <ImageView
                 android:id="@+id/ivTogglePassword"

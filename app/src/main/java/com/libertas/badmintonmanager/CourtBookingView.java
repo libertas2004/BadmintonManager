@@ -166,7 +166,6 @@ public class CourtBookingView extends View {
                 String currentTime = timeFormat.format(currentDate);
 
                 for (TimeSlot slot : timeSlots) {
-                    // ✅ SỬA: So sánh chính xác hơn
                     String slotTime = formatTimeToHHmm(slot.getTime());
                     slot.setPast(slotTime.compareTo(currentTime) <= 0);
                 }
@@ -186,9 +185,7 @@ public class CourtBookingView extends View {
         }
     }
 
-    // ✅ THÊM method này
     private String formatTimeToHHmm(String time) {
-        // Convert "6:00" -> "06:00", "6:30" -> "06:30"
         String[] parts = time.split(":");
         int hour = Integer.parseInt(parts[0]);
         int minute = Integer.parseInt(parts[1]);
@@ -199,24 +196,30 @@ public class CourtBookingView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        // Draw top-left corner
+        // PANEL 1: Fixed top-left corner
         canvas.drawRect(0, 0, COURT_NAME_WIDTH, HEADER_HEIGHT, paintHeader);
         canvas.drawRect(0, 0, COURT_NAME_WIDTH, HEADER_HEIGHT, paintBorder);
 
-        // Draw time headers (fixed row, scrollable horizontally)
+        // PANEL 2: Time headers (fixed vertically, scrollable horizontally)
+        canvas.save();
+        canvas.clipRect(COURT_NAME_WIDTH, 0, getWidth(), HEADER_HEIGHT);
+
         for (int i = 0; i < timeLabels.length; i++) {
             float x = COURT_NAME_WIDTH + i * CELL_WIDTH - scrollX;
-            if (x + CELL_WIDTH < COURT_NAME_WIDTH || x > getWidth()) continue;
 
             canvas.drawRect(x, 0, x + CELL_WIDTH, HEADER_HEIGHT, paintHeader);
             canvas.drawRect(x, 0, x + CELL_WIDTH, HEADER_HEIGHT, paintBorder);
             canvas.drawText(timeLabels[i], x + CELL_WIDTH / 2f, HEADER_HEIGHT / 2f + 10, paintText);
         }
 
-        // Draw court names (fixed column, scrollable vertically)
+        canvas.restore();
+
+        // PANEL 3: Court names (fixed horizontally, scrollable vertically)
+        canvas.save();
+        canvas.clipRect(0, HEADER_HEIGHT, COURT_NAME_WIDTH, getHeight());
+
         for (int i = 0; i < numCourts; i++) {
             float y = HEADER_HEIGHT + i * CELL_HEIGHT - scrollY;
-            if (y + CELL_HEIGHT < HEADER_HEIGHT || y > getHeight()) continue;
 
             canvas.drawRect(0, y, COURT_NAME_WIDTH, y + CELL_HEIGHT, paintHeader);
             canvas.drawRect(0, y, COURT_NAME_WIDTH, y + CELL_HEIGHT, paintBorder);
@@ -224,16 +227,16 @@ public class CourtBookingView extends View {
                     y + CELL_HEIGHT / 2f + 10, paintText);
         }
 
-        // Draw time slots grid (scrollable both directions)
+        canvas.restore();
+
+        // PANEL 4: Time slots grid (scrollable both directions)
+        canvas.save();
+        canvas.clipRect(COURT_NAME_WIDTH, HEADER_HEIGHT, getWidth(), getHeight());
+
         for (int court = 0; court < numCourts; court++) {
             for (int time = 0; time < timeLabels.length; time++) {
                 float x = COURT_NAME_WIDTH + time * CELL_WIDTH - scrollX;
                 float y = HEADER_HEIGHT + court * CELL_HEIGHT - scrollY;
-
-                if (x + CELL_WIDTH < COURT_NAME_WIDTH || x > getWidth() ||
-                        y + CELL_HEIGHT < HEADER_HEIGHT || y > getHeight()) {
-                    continue;
-                }
 
                 TimeSlot slot = getSlot(court, time);
                 if (slot == null) continue;
@@ -242,7 +245,7 @@ public class CourtBookingView extends View {
                 if (selectedSlots.contains(slot)) {
                     paint = paintSelected;
                 } else if (slot.isPast()) {
-                    paint = slot.isBooked() ? paintGray : paintGray;
+                    paint = paintGray;
                     paint.setAlpha(100);
                 } else if (slot.isBooked()) {
                     paint = paintRed;
@@ -256,6 +259,8 @@ public class CourtBookingView extends View {
                 if (slot.isPast()) paint.setAlpha(255);
             }
         }
+
+        canvas.restore();
     }
 
     private TimeSlot getSlot(int courtIndex, int timeIndex) {
@@ -276,20 +281,25 @@ public class CourtBookingView extends View {
                 float dx = event.getX() - lastTouchX;
                 float dy = event.getY() - lastTouchY;
 
-                // If moved more than threshold, consider it dragging
                 if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
                     isDragging = true;
                 }
 
-                // Only scroll horizontally if not in court name column
-                if (lastTouchX > COURT_NAME_WIDTH) {
-                    float maxScrollX = timeLabels.length * CELL_WIDTH - (getWidth() - COURT_NAME_WIDTH);
-                    scrollX = Math.max(0, Math.min(scrollX - dx, maxScrollX));
-                }
+                // Only scroll if in the scrollable area (not in fixed panels)
+                if (lastTouchX > COURT_NAME_WIDTH && lastTouchY > HEADER_HEIGHT) {
+                    // In grid area - can scroll both directions
+                    float maxScrollX = Math.max(0, timeLabels.length * CELL_WIDTH - (getWidth() - COURT_NAME_WIDTH));
+                    float maxScrollY = Math.max(0, numCourts * CELL_HEIGHT - (getHeight() - HEADER_HEIGHT));
 
-                // Only scroll vertically if not in time header row
-                if (lastTouchY > HEADER_HEIGHT) {
-                    float maxScrollY = numCourts * CELL_HEIGHT - (getHeight() - HEADER_HEIGHT);
+                    scrollX = Math.max(0, Math.min(scrollX - dx, maxScrollX));
+                    scrollY = Math.max(0, Math.min(scrollY - dy, maxScrollY));
+                } else if (lastTouchX > COURT_NAME_WIDTH) {
+                    // In time header area - only scroll horizontally
+                    float maxScrollX = Math.max(0, timeLabels.length * CELL_WIDTH - (getWidth() - COURT_NAME_WIDTH));
+                    scrollX = Math.max(0, Math.min(scrollX - dx, maxScrollX));
+                } else if (lastTouchY > HEADER_HEIGHT) {
+                    // In court name area - only scroll vertically
+                    float maxScrollY = Math.max(0, numCourts * CELL_HEIGHT - (getHeight() - HEADER_HEIGHT));
                     scrollY = Math.max(0, Math.min(scrollY - dy, maxScrollY));
                 }
 
