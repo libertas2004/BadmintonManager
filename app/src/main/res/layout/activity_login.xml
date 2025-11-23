@@ -10,7 +10,7 @@
     <ImageView
         android:layout_width="100dp"
         android:layout_height="100dp"
-        android:src="@drawable/ic_badminton"
+        android:src="@drawable/logo_app"
         android:contentDescription="Logo"
         android:layout_marginBottom="32dp"/>
 
@@ -71,7 +71,7 @@
         </RelativeLayout>
     </com.google.android.material.textfield.TextInputLayout>
 
-    <Button
+    <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btnLogin"
         android:layout_width="match_parent"
         android:layout_height="56dp"

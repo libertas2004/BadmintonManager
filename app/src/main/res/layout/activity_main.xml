@@ -15,7 +15,7 @@
         <ImageView
             android:layout_width="120dp"
             android:layout_height="120dp"
-            android:src="@drawable/ic_badminton"
+            android:src="@drawable/logo_app"
             android:contentDescription="Logo"
             android:layout_marginBottom="32dp"/>
 
@@ -53,7 +53,7 @@
             android:textColor="#E0E0E0"
             android:layout_marginTop="8dp"/>
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnStart"
             android:layout_width="200dp"
             android:layout_height="56dp"
